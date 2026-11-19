@@ -39,7 +39,7 @@ Please remove passwords and personal data from logs and payloads.
 
 - Run the tests from the root of the repository: `pip install -r requirements_dev.txt`, then `pytest`. They run on every push and pull request too (job "Tests" of the Validate workflow).
 - The tests do not need Home Assistant: `tests/ha_stubs.py` replaces the parts of it the integration uses and records what the integration does (MQTT publishes, timers, notifications, storage writes). A bug fix comes with a test that fails without the fix.
-- Run them from the root, not from inside `custom_components/sonoff_swv`: files of the integration whose names match standard-library modules (`time.py`, `datetime.py`) can shadow them when Python is started inside that folder.
+- Run them from the root, not from inside `custom_components/sonoff_swv`: files of the integration whose names match standard-library modules (`time.py`, `text.py`) can shadow them when Python is started inside that folder.
 - Restart Home Assistant and look at the log for errors from `sonoff_swv`.
 - When you change a dashboard card, tell which entities it uses.
 

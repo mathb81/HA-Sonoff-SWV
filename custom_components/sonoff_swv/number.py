@@ -17,7 +17,6 @@ from homeassistant.helpers.entity_platform import (
 from .const import DOMAIN
 from .coordinator import SonoffSWVCoordinator
 from .entity import SonoffSWVEntity
-from .entity_resolver import find_mqtt_entity
 from .entity_setup import async_add_entities_after_start
 
 
