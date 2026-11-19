@@ -117,7 +117,7 @@ class SonoffSWVCoordinator(
         super().__init__(
             hass,
             _LOGGER,
-            name=f"Sonoff SWV {device_name}",
+            name=f"Sonoff SWV-ZFE {device_name}",
         )
 
         self.hass = hass

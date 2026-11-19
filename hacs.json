@@ -1,5 +1,5 @@
 {
-  "name": "Sonoff SWV Irrigation",
+  "name": "Sonoff SWV-ZFE Irrigation",
   "render_readme": true,
   "homeassistant": "2026.9.0"
 }
