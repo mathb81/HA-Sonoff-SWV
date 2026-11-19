@@ -40,6 +40,11 @@ TEXTS = {
         "sync_no_plans": "Plans not aligned: the device expects {dev}, the integration has no active plans",
         "sync_mismatch": "Plans not aligned: device {dev}, integration {ours} (plan {n})",
         "battery_low": "Low battery: {level}% (threshold {threshold}%).",
+        "plan_not_saved_title": "Irrigation plan not saved",
+        "plan_not_confirmed": "{device}: the valve did not confirm {plan} within {minutes} minutes, so it was not saved. The previous plan is shown again. Check the Zigbee2MQTT log, then save the plan again.",
+        "plan_mismatch": "{device}: the valve reported {plan} with other settings than the ones saved. The settings reported by the valve are shown: check them, then save the plan again.",
+        "plan_sync_pending": "{plan}: waiting for the valve to confirm",
+        "plan_sync_failed": "{plan}: not saved on the valve",
     },
     "it": {
         "valve_open": "Valvola irrigazione aperta",
@@ -77,6 +82,11 @@ TEXTS = {
         "sync_no_plans": "Piani non allineati: il device prevede {dev}, l'integrazione non ha piani attivi",
         "sync_mismatch": "Piani non allineati: device {dev}, integrazione {ours} (piano {n})",
         "battery_low": "Batteria scarica: {level}% (soglia {threshold}%).",
+        "plan_not_saved_title": "Piano di irrigazione non salvato",
+        "plan_not_confirmed": "{device}: la valvola non ha confermato il {plan} entro {minutes} minuti, quindi non è stato salvato. Viene mostrato di nuovo il piano precedente. Controlla il log di Zigbee2MQTT, poi salva di nuovo il piano.",
+        "plan_mismatch": "{device}: la valvola ha riportato il {plan} con impostazioni diverse da quelle salvate. Vengono mostrate le impostazioni riportate dalla valvola: controllale, poi salva di nuovo il piano.",
+        "plan_sync_pending": "{plan}: in attesa di conferma dalla valvola",
+        "plan_sync_failed": "{plan}: non salvato sulla valvola",
     },
     "fr": {
         "valve_open": "Vanne d'arrosage ouverte",
@@ -114,6 +124,11 @@ TEXTS = {
         "sync_no_plans": "Plans non alignés : la vanne prévoit {dev}, l'intégration n'a aucun plan actif",
         "sync_mismatch": "Plans non alignés : vanne {dev}, intégration {ours} (plan {n})",
         "battery_low": "Pile faible : {level} % (seuil {threshold} %).",
+        "plan_not_saved_title": "Plan d'arrosage non enregistré",
+        "plan_not_confirmed": "{device} : la vanne n'a pas confirmé le {plan} dans les {minutes} minutes, il n'a donc pas été enregistré. Le plan précédent est de nouveau affiché. Consultez le journal de Zigbee2MQTT, puis enregistrez de nouveau le plan.",
+        "plan_mismatch": "{device} : la vanne a renvoyé le {plan} avec d'autres réglages que ceux enregistrés. Les réglages renvoyés par la vanne sont affichés : vérifiez-les, puis enregistrez de nouveau le plan.",
+        "plan_sync_pending": "{plan} : en attente de confirmation par la vanne",
+        "plan_sync_failed": "{plan} : non enregistré sur la vanne",
     },
 }
 

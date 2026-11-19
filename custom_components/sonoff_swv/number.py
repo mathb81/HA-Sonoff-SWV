@@ -79,7 +79,7 @@ NUMBERS = (
     SonoffSWVNumberDescription(
         key="irrigation_plan_amount",
         name="Irrigation plan amount",
-        native_min_value=0,
+        native_min_value=1,
         native_max_value=10000,
         native_step=1,
         native_unit_of_measurement="L",
