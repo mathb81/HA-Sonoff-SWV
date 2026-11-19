@@ -36,7 +36,7 @@ It does not replace the entities that Zigbee2MQTT already creates. It adds a log
 | zigbee-herdsman-converters | 26.105.0 |
 | SWV-ZFE firmware | 1.1.0 |
 
-Tested with **a single valve**. The behaviour of several valves in the same Home Assistant is not supported yet.
+**Several valves** are supported: add each valve as its own entry (Settings → Devices & services → Add integration, once per valve). Each valve keeps its own plans archive, history and settings in a separate file (`.storage/sonoff_swv.<entry_id>`). Installations created before multi-valve support used a single shared file (`.storage/sonoff_swv`): it is migrated automatically, once, to the valve whose IEEE address it contains (or to the only configured valve), then deleted.
 
 With Zigbee2MQTT 2.13.0 / converters 26.90.0 or newer the converter groups several settings in composite fields that must be written as a whole. The integration always sends the complete group, so single changes do not leave the device with partial values.
 
@@ -56,7 +56,7 @@ Copy the folder `custom_components/sonoff_swv` of this repository into the `cust
 
 1. Go to **Settings → Devices & services → Add integration** and search for **Sonoff SWV**.
 2. In the **Sonoff SWV device** field select the SWV-ZFE as registered by Zigbee2MQTT / MQTT. The IEEE address is extracted automatically and used to link the existing MQTT entities.
-3. Confirm. A device can be configured only once; if it does not appear or is refused, check that it is a Zigbee2MQTT device known to the MQTT integration.
+3. Confirm. Repeat for each valve. A device can be configured only once; if it does not appear or is refused, check that it is a Zigbee2MQTT device known to the MQTT integration.
 
 The device must already be known to Zigbee2MQTT and to the MQTT integration. The IEEE address is read from the device registry once, at configuration time.
 
@@ -104,7 +104,7 @@ The fail-safe only matters in `capacity` mode: in the duration modes the device 
 
 ### Notifications
 
-Set the **notification type** (Telegram or companion app), then the **recipient**. All other options stay disabled until a recipient is chosen. Every message starts with the name of the device in square brackets; the name can be changed in the **device label** field (empty = name from Zigbee2MQTT). The texts (messages, menu entries and summaries) follow the **system language** of Home Assistant: English and Italian are available, other languages fall back to English.
+Set the **notification type** (Telegram or companion app), then the **recipient**. All other options stay disabled until a recipient is chosen. Every message starts with the name of the device in square brackets; the name can be changed in the **device label** field (empty = name from Zigbee2MQTT). The texts (messages, menu entries and summaries) follow the **system language** of Home Assistant: English, Italian and French are available, other languages fall back to English.
 
 - Messages about plans (advance warning, start, end) are sent only for **scheduled** irrigations, once per event, and never for events older than 10 minutes.
 - **Valve open / closed** always follows the state of the valve, unless the plan notifications are on: in that case a scheduled irrigation is announced by the plan messages only, and the valve messages are not repeated.
