@@ -110,19 +110,24 @@ class SonoffSWVCoordinator(
     def __init__(
         self,
         hass: HomeAssistant,
+        entry_id: str,
         device_name: str,
         ieee: str | None = None,
     ) -> None:
         super().__init__(
             hass,
             _LOGGER,
-            name="Sonoff SWV",
+            name=f"Sonoff SWV {device_name}",
         )
 
         self.hass = hass
 
+        # One storage file per valve (config entry): with a shared file
+        # several valves would overwrite each other's plans and settings.
         self.storage = SonoffStorage(
             hass,
+            entry_id,
+            ieee,
         )
 
         self.device_name = device_name
