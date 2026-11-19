@@ -117,9 +117,29 @@ def plan_from_form(get, plan_index) -> dict:
     return raw
 
 
+# Durate dei cicli: Zigbee2MQTT le vuole tra 1 e 60 min anche in modalità
+# capacity, dove non servono, e scarta tutto il piano se valgono 0. Il device
+# invece le riporta a 0 in capacity (dati catturati su SWV-ZFE, 2026-11-19).
+CYCLE_FIELDS = ("irrigation_duration", "interval_duration")
+CYCLE_MIN = 1
+CYCLE_MAX = 60
+
+
+def valid_cycle_minutes(value):
+    """Durata di un ciclo nell'intervallo accettato da Zigbee2MQTT (1-60)."""
+    try:
+        minutes = int(float(value))
+    except (TypeError, ValueError):
+        return CYCLE_MIN
+    return min(max(minutes, CYCLE_MIN), CYCLE_MAX)
+
+
 def form_values_from_plan(plan: dict) -> dict:
     """Valori da assegnare agli attributi del Device per popolare il form."""
     values = {attr: plan.get(field) for field, attr in FORM_FIELD_MAP.items()}
+    for field in CYCLE_FIELDS:
+        attr = FORM_FIELD_MAP[field]
+        values[attr] = valid_cycle_minutes(values[attr])
     week = plan.get("loop_type_week_days") or {}
     for day in WEEKDAYS:
         values[f"irrigation_plan_{day}"] = bool(week.get(day, False))
