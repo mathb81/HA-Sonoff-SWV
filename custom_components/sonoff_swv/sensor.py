@@ -12,6 +12,7 @@ from homeassistant.const import (
     PERCENTAGE,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import (
     AddEntitiesCallback,
 )
@@ -268,7 +269,7 @@ class SonoffSWVSensor(
 
             event = next_event(
                 self.coordinator.data.get("irrigation_plans", {}),
-                datetime.now().astimezone(),
+                dt_util.now(),
             )
 
             if event is None:
@@ -376,7 +377,7 @@ class SonoffSWVSensor(
 
             runs = upcoming_runs(
                 plans,
-                datetime.now().astimezone(),
+                dt_util.now(),
                 lang=self.coordinator.language,
             )
 
@@ -395,7 +396,7 @@ class SonoffSWVSensor(
             overview = plans_overview(plans, PLAN_INDEXES)
 
             attrs = dict(overview)
-            now = datetime.now().astimezone()
+            now = dt_util.now()
 
             lang = self.coordinator.language
 
