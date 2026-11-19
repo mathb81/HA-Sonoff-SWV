@@ -102,6 +102,10 @@ HISTORY_PERIOD_MQTT_TYPE = {
 }
 
 
+# Ritardo, dopo l'orario di un avvio, del ricalcolo di prossima irrigazione
+# e riepilogo (vedi _schedule_next_run_refresh).
+NEXT_RUN_REFRESH_DELAY = timedelta(minutes=1)
+
 class SonoffSWVCoordinator(
     DataUpdateCoordinator[dict[str, Any]],
 ):
@@ -570,6 +574,55 @@ class SonoffSWVCoordinator(
         self._rain_unsub = None
         self.async_set_updated_data(self.data)
 
+    @callback
+    def async_set_updated_data(self, data) -> None:
+        """Aggiorna le entità e riprogramma il ricalcolo dopo il prossimo avvio."""
+        super().async_set_updated_data(data)
+        self._schedule_next_run_refresh()
+
+    def _schedule_next_run_refresh(self) -> None:
+        """Un timer subito dopo l'orario del prossimo avvio.
+
+        Prossima irrigazione e riepilogo dei piani dipendono dall'ora, ma
+        Home Assistant li rilegge solo a un aggiornamento: se l'avvio salta
+        (pioggia, valvola irraggiungibile) e il device non scrive nulla,
+        resterebbero fermi su un orario già passato.
+        """
+        plans = self.data.get("irrigation_plans", {}) if isinstance(self.data, dict) else {}
+        run = next_event(plans, dt_util.now())
+
+        when = None
+        if run is not None:
+            when = datetime.fromisoformat(run["start_time"]) + NEXT_RUN_REFRESH_DELAY
+
+        if when is not None and when == getattr(self, "_refresh_when", None):
+            return
+
+        self._cancel_next_run_refresh()
+
+        if when is None:
+            return
+
+        self._refresh_when = when
+        self._refresh_unsub = async_track_point_in_time(
+            self.hass,
+            self._next_run_passed,
+            when,
+        )
+
+    def _cancel_next_run_refresh(self) -> None:
+        if getattr(self, "_refresh_unsub", None) is not None:
+            self._refresh_unsub()
+        self._refresh_unsub = None
+        self._refresh_when = None
+
+    @callback
+    def _next_run_passed(self, _now) -> None:
+        self._refresh_unsub = None
+        self._refresh_when = None
+        self._reschedule_warning()
+        self.async_set_updated_data(self.data)
+
     async def async_set_rain_delay(self, hours: int | None) -> None:
         """Imposta il ritardo per pioggia, oppure lo annulla (hours vuoto).
 
@@ -996,6 +1049,7 @@ class SonoffSWVCoordinator(
         """Stop MQTT listener."""
 
         self._cancel_warning()
+        self._cancel_next_run_refresh()
 
         if getattr(self, "_rain_unsub", None) is not None:
             self._rain_unsub()
