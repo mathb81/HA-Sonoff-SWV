@@ -100,7 +100,7 @@ The fail-safe only matters in `capacity` mode: in the duration modes the device 
 - The warning *plans not aligned* compares the next run announced by the device with the one calculated from the archive. It is a hint, not a proof.
 - The **repetition interval in days must be at least 1**. The device silently discards a plan with 0 days: the plan looks saved but never runs.
 - The device is battery powered (end device): some reports arrive with a delay.
-- Zigbee2MQTT republishes the last written settings as a cached echo. The integration deliberately ignores this echo, because it is not a reading of the device.
+- Zigbee2MQTT republishes the last written settings as a cached echo. The integration does not read plans from this echo, because it is not a reading of the device. It only uses the echo of its own write (same slot and same `create_datetime`) as the confirmation that Zigbee2MQTT accepted the plan: the valve does not send a plan report after a write, only when it rejoins the network. A plan without this confirmation within 2 minutes is shown as not saved and the previous plan comes back.
 
 ### Notifications
 
