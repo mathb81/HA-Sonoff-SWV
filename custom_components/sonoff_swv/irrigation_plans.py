@@ -124,3 +124,72 @@ def form_values_from_plan(plan: dict) -> dict:
     for day in WEEKDAYS:
         values[f"irrigation_plan_{day}"] = bool(week.get(day, False))
     return values
+
+def _as_int(value):
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _as_hhmm(value):
+    try:
+        hours, minutes = str(value).split(":")[:2]
+        return f"{int(hours):02d}:{int(minutes):02d}"
+    except (TypeError, ValueError):
+        return None
+
+
+def plan_signature(data: dict) -> dict:
+    """Campi che definiscono un piano, nella forma in cui li confronta plan_matches."""
+    loop = data.get("loop_type_mode")
+    mode = data.get("irrigation_mode")
+    week = data.get("loop_type_week_days") or {}
+
+    signature = {
+        "enable_state": (
+            None if data.get("enable_state") is None else bool(data.get("enable_state"))
+        ),
+        "start_time": _as_hhmm(data.get("start_time")),
+        "loop_type_mode": loop,
+        "irrigation_mode": mode,
+        "fail_safe": _as_int(data.get("fail_safe")),
+    }
+
+    if loop == "weekdays":
+        signature["loop_type_week_days"] = tuple(d for d in WEEKDAYS if week.get(d))
+    elif loop == "day_interval":
+        signature["loop_type_interval_days"] = _as_int(data.get("loop_type_interval_days"))
+
+    if mode == "capacity":
+        signature["irrigation_amount"] = _as_int(data.get("irrigation_amount"))
+    else:
+        signature["irrigation_total_duration"] = _as_int(
+            data.get("irrigation_total_duration")
+        )
+        if mode == "duration_with_interval":
+            signature["irrigation_duration"] = _as_int(data.get("irrigation_duration"))
+            signature["interval_duration"] = _as_int(data.get("interval_duration"))
+
+    return signature
+
+
+def plan_matches(report: dict, written: dict) -> bool:
+    """Il report del device descrive il piano scritto?
+
+    Un campo vuoto nel piano scritto non viene inviato (Zigbee2MQTT usa il
+    suo default), quindi non partecipa al confronto.
+    """
+    if not isinstance(report, dict) or not isinstance(written, dict):
+        return False
+
+    if _as_int(report.get("plan_index")) != _as_int(written.get("plan_index")):
+        return False
+
+    expected = plan_signature(written)
+    actual = plan_signature(report)
+
+    return all(
+        value is None or actual.get(field) == value
+        for field, value in expected.items()
+    )

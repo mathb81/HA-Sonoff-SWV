@@ -412,6 +412,8 @@ class SonoffSWVSensor(
                 self.coordinator.data.get("status_ignored"),
                 lang=lang,
             )
+            # Piani scritti da HA che il device non ha (ancora) confermato.
+            warnings = self.coordinator.plan_write_warnings() + warnings
             attrs["avvisi"] = warnings
             attrs["avviso"] = (
                 "; ".join(warnings)

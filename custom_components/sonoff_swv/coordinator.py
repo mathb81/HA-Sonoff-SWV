@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 import logging
 import asyncio
+import copy
+from functools import partial
 from typing import Any
 
-from homeassistant.components import mqtt
+from homeassistant.components import mqtt, persistent_notification
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_point_in_time
 from homeassistant.helpers import entity_registry as er
@@ -32,14 +34,22 @@ from .irrigation_plans import (
     form_values_from_plan,
     normalize_plan,
     plan_from_form,
+    plan_matches,
     remove_plan,
     upsert_plan,
     PLAN_DEFAULTS,
 )
+from .const import DOMAIN
 from .storage import SonoffStorage
 from .entity_resolver import find_mqtt_entity
 from .next_irrigation import next_event
 from .texts import normalize_language, translate
+
+# Tempo concesso al device per confermare un piano scritto con il suo
+# irrigation_plan_report. Zigbee2MQTT scarta in silenzio un piano non valido
+# e una valvola che non risponde non lo memorizza: senza conferma il piano
+# precedente torna nell'archivio.
+PLAN_CONFIRM_TIMEOUT = timedelta(minutes=2)
 
 # Gruppi di impostazioni trattati come bozza: scrivono sul device
 # solo quando un bottone chiama publish_attribute(..., force=True).
@@ -162,6 +172,9 @@ class SonoffSWVCoordinator(
         self._warning_unsub = None
         self._warning_key = None
         self._warning_fire = None
+
+        # Un timer per ogni piano scritto in attesa di conferma dal device.
+        self._plan_timers: dict[str, Any] = {}
 
         _LOGGER.info(
             "Coordinator initialized for topic %s (ieee=%s)",
@@ -295,6 +308,9 @@ class SonoffSWVCoordinator(
                 )
 
         report = payload.get("irrigation_plan_report")
+
+        if isinstance(report, dict):
+            self._check_plan_confirmation(report)
 
         if isinstance(report, dict) and report != self.data.get("last_plan_report"):
 
@@ -445,6 +461,10 @@ class SonoffSWVCoordinator(
         if plan is None:
             return
 
+        # Il piano resta "in attesa" finché il device non lo conferma con un
+        # irrigation_plan_report: va ricordato il piano che c'era prima.
+        self._track_plan_write(plan)
+
         self.data["irrigation_plans"] = upsert_plan(
             self.data.get("irrigation_plans", {}),
             plan,
@@ -454,6 +474,147 @@ class SonoffSWVCoordinator(
 
         self.async_set_updated_data(self.data)
         await self.async_save()
+
+    def _track_plan_write(self, plan: dict) -> None:
+        """Mette un piano appena scritto in attesa della conferma del device."""
+        key = str(plan["plan_index"])
+        pending = self.data.setdefault("plan_pending", {})
+
+        if key in pending:
+            # Riscritto prima della conferma: il piano da ripristinare resta
+            # l'ultimo confermato, non la scrittura ancora in attesa.
+            previous = pending[key].get("previous")
+        else:
+            previous = self.data.get("irrigation_plans", {}).get(key)
+
+        pending[key] = {
+            "previous": copy.deepcopy(previous),
+            "written": copy.deepcopy(plan),
+            "deadline": (dt_util.now() + PLAN_CONFIRM_TIMEOUT).isoformat(),
+        }
+
+        self.data.setdefault("plan_failed", {}).pop(key, None)
+        persistent_notification.async_dismiss(self.hass, self._plan_notification_id(key))
+
+        self._schedule_plan_confirmation(key)
+
+    def _schedule_plan_confirmation(self, key: str) -> None:
+        """Programma (o riprogramma dopo un riavvio) la scadenza della conferma."""
+        self._cancel_plan_confirmation(key)
+
+        info = self.data.get("plan_pending", {}).get(key)
+        if info is None:
+            return
+
+        now = dt_util.now()
+        try:
+            deadline = datetime.fromisoformat(str(info.get("deadline")))
+        except ValueError:
+            deadline = now
+
+        self._plan_timers[key] = async_track_point_in_time(
+            self.hass,
+            partial(self._plan_confirmation_expired, key),
+            max(deadline, now),
+        )
+
+    def _cancel_plan_confirmation(self, key: str) -> None:
+        cancel = self._plan_timers.pop(key, None)
+        if cancel is not None:
+            cancel()
+
+    def _check_plan_confirmation(self, report: dict) -> None:
+        """Chiude l'attesa di un piano quando il device ne invia il report.
+
+        Zigbee2MQTT ripete in ogni messaggio l'ultimo report in cache: conta
+        come conferma solo un report che descrive il piano scritto. Un report
+        nuovo ma diverso vuol dire che il device ha un altro piano in quello
+        slot: vale il report, e l'utente viene avvisato.
+        """
+        key = str(report.get("plan_index"))
+        info = self.data.get("plan_pending", {}).get(key)
+        if info is None:
+            return
+
+        if plan_matches(report, info.get("written")):
+            self.data["plan_pending"].pop(key, None)
+            self._cancel_plan_confirmation(key)
+            _LOGGER.debug("Plan %s confirmed by %s", key, self.device_name)
+            return
+
+        if report == self.data.get("last_plan_report"):
+            return
+
+        self.data["plan_pending"].pop(key, None)
+        self._cancel_plan_confirmation(key)
+        self._report_plan_failure(key, "plan_mismatch")
+
+    @callback
+    def _plan_confirmation_expired(self, key: str, _now=None) -> None:
+        """Nessuna conferma: torna il piano di prima e l'utente viene avvisato."""
+        self._plan_timers.pop(key, None)
+
+        info = self.data.get("plan_pending", {}).pop(key, None)
+        if info is None:
+            return
+
+        plans = self.data.setdefault("irrigation_plans", {})
+        previous = info.get("previous")
+        if previous is None:
+            plans.pop(key, None)
+        else:
+            plans[key] = previous
+
+        self._report_plan_failure(key, "plan_not_confirmed")
+
+        self._reschedule_warning()
+        self.async_set_updated_data(self.data)
+        self.hass.async_create_task(self.async_save())
+
+    def _report_plan_failure(self, key: str, reason: str) -> None:
+        self.data.setdefault("plan_failed", {})[key] = {
+            "reason": reason,
+            "at": dt_util.now().isoformat(),
+        }
+
+        plan = self.text("plan_name", n=key)
+        message = self.text(
+            reason,
+            device=self.notify_label(),
+            plan=plan,
+            minutes=int(PLAN_CONFIRM_TIMEOUT.total_seconds() // 60),
+        )
+
+        _LOGGER.warning("%s", message)
+
+        persistent_notification.async_create(
+            self.hass,
+            message,
+            title=self.text("plan_not_saved_title"),
+            notification_id=self._plan_notification_id(key),
+        )
+
+    def _forget_plan_write(self, key: str) -> None:
+        """Dimentica attesa ed errore di uno slot (piano rimosso)."""
+        self._cancel_plan_confirmation(key)
+        self.data.get("plan_pending", {}).pop(key, None)
+        self.data.get("plan_failed", {}).pop(key, None)
+        persistent_notification.async_dismiss(self.hass, self._plan_notification_id(key))
+
+    def _plan_notification_id(self, key: str) -> str:
+        return f"{DOMAIN}_{self.device.ieee or self.device_name}_plan_{key}"
+
+    def plan_write_warnings(self) -> list[str]:
+        """Avvisi per i piani in attesa di conferma o non salvati."""
+        warnings = [
+            self.text("plan_sync_pending", plan=self.text("plan_name", n=key))
+            for key in sorted(self.data.get("plan_pending", {}))
+        ]
+        warnings += [
+            self.text("plan_sync_failed", plan=self.text("plan_name", n=key))
+            for key in sorted(self.data.get("plan_failed", {}))
+        ]
+        return warnings
 
     async def async_load_plan_into_form(self, plan_index: int) -> None:
         """Popola il form con il piano archiviato, o con i default se non noto."""
@@ -486,6 +647,8 @@ class SonoffSWVCoordinator(
             plan_index,
         )
 
+        self._forget_plan_write(str(plan_index))
+
         self._reschedule_warning()
 
         await self.async_load_plan_into_form(plan_index)
@@ -511,6 +674,11 @@ class SonoffSWVCoordinator(
             }
 
         self.data["irrigation_plans"] = {}
+
+        for key in list(self.data.get("plan_pending", {})) + list(
+            self.data.get("plan_failed", {})
+        ):
+            self._forget_plan_write(key)
 
         self._reschedule_warning()
 
@@ -990,6 +1158,10 @@ class SonoffSWVCoordinator(
         self._reschedule_warning()
         self._reschedule_rain_expiry()
 
+        # Piani scritti prima di un riavvio e non ancora confermati.
+        for key in list(self.data.get("plan_pending", {})):
+            self._schedule_plan_confirmation(key)
+
     async def async_stop(
         self,
     ) -> None:
@@ -1006,3 +1178,6 @@ class SonoffSWVCoordinator(
             "_unsubscribe",
         ):
             self._unsubscribe()
+
+        for key in list(self._plan_timers):
+            self._cancel_plan_confirmation(key)
