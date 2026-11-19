@@ -6,13 +6,22 @@ out of range (it only logs an error), and a valve that does not answer
 never stores it either: the integration still showed the plan, its next
 run and the warning before it.
 
-The valve confirms every plan it stores with an irrigation_plan_report.
-These tests check that a plan only stays in the archive once that report
-arrives, and that the previous plan comes back otherwise.
+A plan only stays in the archive once it is confirmed, and the previous
+plan comes back otherwise.
+
+On real hardware (SWV-ZFE, captured on 2026-11-19) the valve does NOT send
+an irrigation_plan_report after a write: the report only comes when the
+valve rejoins the network, so it stayed frozen on a July plan while every
+new plan was accepted. What does come back, within a second, is the
+Zigbee2MQTT state echo of irrigation_plan_settings carrying the
+create_datetime of the write; a write that Zigbee2MQTT rejects
+("irrigation_plan_settings invalid irrigation_amount ...") produces no echo.
+Both the echo and a matching report count as a confirmation.
 """
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 
 import ha_stubs
@@ -203,3 +212,83 @@ async def test_valve_reporting_other_settings_is_shown_and_flagged(make_coordina
 
     assert archived(coordinator, 3)["irrigation_amount"] == 30, "the valve's own plan wins"
     assert hass.notifications, "the user must be told that the valve kept other settings"
+
+
+def settings_echo(written: dict) -> dict:
+    """The irrigation_plan_settings Zigbee2MQTT publishes after an accepted write."""
+    echo = dict(written)
+    echo.pop("source", None)
+    echo.pop("updated_at", None)
+    return echo
+
+
+def written_plan(coordinator, plan_index: int) -> dict:
+    return coordinator.data["plan_pending"][str(plan_index)]["written"]
+
+
+async def test_plan_accepted_by_zigbee2mqtt_is_kept(make_coordinator, hass):
+    """Captured 2026-11-19: the echo comes back, the report stays frozen."""
+    coordinator = await make_coordinator()
+    await coordinator.async_start()
+
+    stale_report = valve_report(0, "19:00", 75, "2026-07-11T23:57:00+02:00")
+    coordinator.update_from_device({"irrigation_plan_report": stale_report})
+
+    await save_plan_from_form(coordinator, 0, "18:00", 1)
+    echo = settings_echo(written_plan(coordinator, 0))
+
+    # Zigbee2MQTT accepts the write: its state echoes the plan just written,
+    # next to the cached report the valve sent months ago.
+    coordinator.update_from_device(
+        {"irrigation_plan_settings": echo, "irrigation_plan_report": stale_report}
+    )
+
+    hass.async_fire_time_changed(later())
+    await hass.async_block_till_done()
+
+    plan = archived(coordinator, 0)
+    assert (plan["start_time"], plan["irrigation_amount"]) == ("18:00", 1), (
+        "a plan Zigbee2MQTT accepted is shown as not saved"
+    )
+    assert not hass.notifications
+
+
+async def test_cached_settings_echo_does_not_confirm_a_new_plan(make_coordinator, hass):
+    """Every state message repeats the last echo: only the echo of this write counts."""
+    coordinator = await make_coordinator()
+    await coordinator.async_start()
+
+    await save_plan_from_form(coordinator, 0, "18:00", 5)
+    first_echo = settings_echo(written_plan(coordinator, 0))
+    coordinator.update_from_device({"irrigation_plan_settings": first_echo})
+
+    # A second write of the same slot that Zigbee2MQTT rejects: no new echo,
+    # the state keeps repeating the first one.
+    await asyncio.sleep(1.1)  # create_datetime has a one-second resolution
+    await save_plan_from_form(coordinator, 0, "18:00", 0)
+    written = written_plan(coordinator, 0)
+    assert written["create_datetime"] != first_echo["create_datetime"]
+
+    coordinator.update_from_device({"battery": 80, "irrigation_plan_settings": first_echo})
+
+    hass.async_fire_time_changed(later())
+    await hass.async_block_till_done()
+
+    assert archived(coordinator, 0)["irrigation_amount"] == 5
+    assert hass.notifications, "the user must be told that the plan was not saved"
+
+
+async def test_echo_of_another_slot_does_not_confirm(make_coordinator, hass):
+    coordinator = await make_coordinator()
+    await coordinator.async_start()
+
+    await save_plan_from_form(coordinator, 2, "07:30", 25)
+    echo = settings_echo(written_plan(coordinator, 2))
+    echo["plan_index"] = 3
+
+    coordinator.update_from_device({"irrigation_plan_settings": echo})
+
+    hass.async_fire_time_changed(later())
+    await hass.async_block_till_done()
+
+    assert archived(coordinator, 2) is None
