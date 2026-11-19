@@ -22,6 +22,7 @@ from .mapper import (
 )
 from .models.device import Device
 from .mqtt import async_subscribe
+from .const import DEFAULT_BASE_TOPIC
 from .irrigation_history import (
     build_event_from_status,
     prune_history,
@@ -113,6 +114,7 @@ class SonoffSWVCoordinator(
         entry_id: str,
         device_name: str,
         ieee: str | None = None,
+        base_topic: str = DEFAULT_BASE_TOPIC,
     ) -> None:
         super().__init__(
             hass,
@@ -140,9 +142,11 @@ class SonoffSWVCoordinator(
         # restart (e.g. battery-powered / event-driven devices).
         self._configured_ieee = ieee
 
-        self.topic_state = f"zigbee2mqtt/{device_name}"
+        # Nome Zigbee2MQTT attuale, risolto dall'indirizzo IEEE a ogni avvio
+        # (vedi __init__.py): un rinomina in Zigbee2MQTT ricarica la valvola.
+        self.topic_state = f"{base_topic}/{device_name}"
 
-        self.topic_set = f"zigbee2mqtt/{device_name}/set"
+        self.topic_set = f"{base_topic}/{device_name}/set"
 
         self.data: dict[str, Any] = {}
 
