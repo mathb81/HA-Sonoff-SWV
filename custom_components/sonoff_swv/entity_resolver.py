@@ -183,6 +183,11 @@ def find_mqtt_entity(
     # MQTT entity does not break the resolver.
     suffix = f"_{mqtt_key}_zigbee2mqtt"
 
+    # When the IEEE is known, the fallback only looks at this valve's
+    # entities: with several valves, an entity missing on this one must
+    # not be resolved to the same entity of another valve.
+    normalized_ieee = _normalize_ieee(ieee) if ieee else None
+
     matches: list[str] = []
 
     for entity_entry in registry.entities.values():
@@ -200,8 +205,13 @@ def find_mqtt_entity(
         if not unique_id:
             continue
 
-        if unique_id.endswith(suffix):
-            matches.append(entity_entry.entity_id)
+        if not unique_id.endswith(suffix):
+            continue
+
+        if normalized_ieee and normalized_ieee not in unique_id.lower():
+            continue
+
+        matches.append(entity_entry.entity_id)
 
     # Only use the fallback when there is exactly one match.
     # This prevents accidentally binding to another device if

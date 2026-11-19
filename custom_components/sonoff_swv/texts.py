@@ -1,4 +1,4 @@
-"""Testi dell'integrazione in inglese e italiano (nessuna dipendenza da HA)."""
+"""Testi dell'integrazione in inglese, italiano e francese (nessuna dipendenza da HA)."""
 from __future__ import annotations
 
 DEFAULT_LANGUAGE = "en"
@@ -77,6 +77,43 @@ TEXTS = {
         "sync_no_plans": "Piani non allineati: il device prevede {dev}, l'integrazione non ha piani attivi",
         "sync_mismatch": "Piani non allineati: device {dev}, integrazione {ours} (piano {n})",
         "battery_low": "Batteria scarica: {level}% (soglia {threshold}%).",
+    },
+    "fr": {
+        "valve_open": "Vanne d'arrosage ouverte",
+        "valve_closed": "Vanne d'arrosage fermée",
+        "plan_started": "Arrosage démarré.",
+        "plan_started_end": "Arrosage démarré, fin prévue à {end}.",
+        "plan_ended": "Arrosage terminé : {liters} L en {minutes} {unit} ({start}-{end}).",
+        "plan_warning": "{plan} démarre dans {remaining} {unit} ({start}) : {expected} prévus.",
+        "alarm_water_shortage": "Alarme : manque d'eau.",
+        "alarm_water_leak": "Alarme : fuite d'eau détectée.",
+        "minute_one": "minute",
+        "minute_other": "minutes",
+        "hour_one": "heure",
+        "hour_other": "heures",
+        "plan_name": "Plan {n}",
+        "origin_manual": "Manuel",
+        "rain_active": "Actif",
+        "rain_inactive": "Inactif",
+        "rain_detail": "Report de {hours} {unit} réglé le {date} à {time}",
+        "date_format": "%d/%m/%Y",
+        "short_datetime_format": "%d/%m %H:%M",
+        "none": "Aucun",
+        "telegram": "Telegram",
+        "app": "Application compagnon",
+        "weekdays_short": "lun,mar,mer,jeu,ven,sam,dim",
+        "plan_unknown": "inconnu",
+        "plan_state_active": "ACTIF",
+        "plan_state_inactive": "inactif",
+        "plan_no_days": "aucun jour",
+        "plan_every_days": "tous les {n} j",
+        "plan_next": "prochain : {when}",
+        "cycles_text": " (cycles de {cycle} min, pause {pause} min)",
+        "warnings_none": "aucun",
+        "sync_dev": "{when} (plan {n})",
+        "sync_no_plans": "Plans non alignés : la vanne prévoit {dev}, l'intégration n'a aucun plan actif",
+        "sync_mismatch": "Plans non alignés : vanne {dev}, intégration {ours} (plan {n})",
+        "battery_low": "Pile faible : {level} % (seuil {threshold} %).",
     },
 }
 

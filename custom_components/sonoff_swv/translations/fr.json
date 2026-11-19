@@ -1,0 +1,20 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurer Sonoff SWV",
+        "description": "Sélectionnez la vanne Sonoff SWV-ZFE telle qu'enregistrée par Zigbee2MQTT/MQTT. Son adresse IEEE sera extraite automatiquement et servira à relier les entités MQTT existantes. Ajoutez chaque vanne séparément.",
+        "data": {
+          "device_id": "Vanne Sonoff SWV"
+        }
+      }
+    },
+    "error": {
+      "device_not_found": "L'appareil sélectionné est introuvable dans le registre des appareils. Réessayez.",
+      "not_a_zigbee2mqtt_device": "L'appareil sélectionné ne semble pas être un appareil Zigbee2MQTT (aucun identifiant MQTT correspondant). Sélectionnez la vanne Sonoff SWV enregistrée via Zigbee2MQTT."
+    },
+    "abort": {
+      "already_configured": "Cette vanne Sonoff SWV est déjà configurée."
+    }
+  }
+}
