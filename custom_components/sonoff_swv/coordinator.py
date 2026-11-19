@@ -45,10 +45,16 @@ from .entity_resolver import find_mqtt_entity
 from .next_irrigation import next_event
 from .texts import normalize_language, translate
 
-# Tempo concesso al device per confermare un piano scritto con il suo
-# irrigation_plan_report. Zigbee2MQTT scarta in silenzio un piano non valido
-# e una valvola che non risponde non lo memorizza: senza conferma il piano
-# precedente torna nell'archivio.
+# Tempo concesso per confermare un piano scritto. Zigbee2MQTT scarta un piano
+# non valido (lo segnala solo nel suo log) e una valvola che non risponde non
+# lo memorizza: senza conferma il piano precedente torna nell'archivio.
+#
+# Conferma = eco di irrigation_plan_settings con il create_datetime della
+# scrittura: Zigbee2MQTT la pubblica entro un secondo solo se la scrittura è
+# andata a buon fine. La valvola invece NON invia irrigation_plan_report dopo
+# una scrittura (solo quando rientra nella rete): un report che descrive il
+# piano scritto vale comunque come conferma. Dati catturati su SWV-ZFE il
+# 2026-11-19.
 PLAN_CONFIRM_TIMEOUT = timedelta(minutes=2)
 
 # Gruppi di impostazioni trattati come bozza: scrivono sul device
@@ -77,6 +83,23 @@ NOTIFY_DEFAULTS = {
 
 # Punti percentuali sopra la soglia per riarmare l'avviso di batteria scarica.
 BATTERY_HYSTERESIS = 5
+
+def _as_int(value) -> int | None:
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _same_moment(first, second) -> bool:
+    """Due date ISO indicano lo stesso istante? False se una manca o non è valida."""
+    if not first or not second:
+        return False
+    try:
+        return datetime.fromisoformat(str(first)) == datetime.fromisoformat(str(second))
+    except ValueError:
+        return False
+
 
 # Condizione di valve_abnormal_state -> (impostazione, messaggio).
 ALARM_CONDITIONS = {
@@ -307,6 +330,11 @@ class SonoffSWVCoordinator(
                     history,
                 )
 
+        settings = payload.get("irrigation_plan_settings")
+
+        if isinstance(settings, dict):
+            self._check_plan_echo(settings)
+
         report = payload.get("irrigation_plan_report")
 
         if isinstance(report, dict):
@@ -461,8 +489,8 @@ class SonoffSWVCoordinator(
         if plan is None:
             return
 
-        # Il piano resta "in attesa" finché il device non lo conferma con un
-        # irrigation_plan_report: va ricordato il piano che c'era prima.
+        # Il piano resta "in attesa" finché la scrittura non è confermata
+        # (eco di Zigbee2MQTT o report): va ricordato il piano di prima.
         self._track_plan_write(plan)
 
         self.data["irrigation_plans"] = upsert_plan(
@@ -522,6 +550,27 @@ class SonoffSWVCoordinator(
         cancel = self._plan_timers.pop(key, None)
         if cancel is not None:
             cancel()
+
+    def _check_plan_echo(self, settings: dict) -> None:
+        """Chiude l'attesa quando Zigbee2MQTT conferma la scrittura del piano.
+
+        Dopo una scrittura accettata Zigbee2MQTT pubblica irrigation_plan_settings
+        con i valori scritti, poi lo ripete in ogni messaggio. Conta solo l'eco
+        con lo stesso slot e lo stesso create_datetime della scrittura in
+        attesa: l'eco in cache di una scrittura precedente non conferma nulla.
+        """
+        key = str(_as_int(settings.get("plan_index")))
+        info = self.data.get("plan_pending", {}).get(key)
+        if info is None:
+            return
+
+        written = info.get("written") or {}
+        if not _same_moment(settings.get("create_datetime"), written.get("create_datetime")):
+            return
+
+        self.data["plan_pending"].pop(key, None)
+        self._cancel_plan_confirmation(key)
+        _LOGGER.debug("Plan %s accepted by Zigbee2MQTT for %s", key, self.device_name)
 
     def _check_plan_confirmation(self, report: dict) -> None:
         """Chiude l'attesa di un piano quando il device ne invia il report.
