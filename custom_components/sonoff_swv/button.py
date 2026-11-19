@@ -18,6 +18,7 @@ from .coordinator import SonoffSWVCoordinator
 from .entity import SonoffSWVEntity
 from .entity_resolver import find_mqtt_entity
 from .entity_setup import async_add_entities_after_start
+from .irrigation_plans import CYCLE_FIELDS, FORM_FIELD_MAP, valid_cycle_minutes
 from .coordinator import HISTORY_PERIOD_MQTT_TYPE
 
 
@@ -151,6 +152,17 @@ class SonoffSWVButton(
                 .replace(microsecond=0)
                 .isoformat()
             )
+
+            # Cycle durations outside 1-60 make Zigbee2MQTT drop the whole
+            # plan, even in capacity mode where they are unused (a draft
+            # loaded before this check may still hold the 0 of a report).
+            for field in CYCLE_FIELDS:
+                attr = FORM_FIELD_MAP[field]
+                setattr(
+                    self.coordinator.device,
+                    attr,
+                    valid_cycle_minutes(getattr(self.coordinator.device, attr, None)),
+                )
 
             # Publishes the full irrigation_plan_settings group
             # (all fields currently set on the Device, atomically),
