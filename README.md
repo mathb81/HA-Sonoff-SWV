@@ -46,7 +46,7 @@ With Zigbee2MQTT 2.13.0 / converters 26.90.0 or newer the converter groups sever
 
 1. In HACS open the menu and choose **Custom repositories**.
 2. Add `https://github.com/sercipo/HA-Sonoff-SWV` with category **Integration**.
-3. Install **Sonoff SWV** and restart Home Assistant.
+3. Install **Sonoff SWV-ZFE** and restart Home Assistant.
 
 ### Manual
 
@@ -54,8 +54,8 @@ Copy the folder `custom_components/sonoff_swv` of this repository into the `cust
 
 ## Setup
 
-1. Go to **Settings → Devices & services → Add integration** and search for **Sonoff SWV**.
-2. In the **Sonoff SWV device** field select the SWV-ZFE as registered by Zigbee2MQTT / MQTT. The IEEE address is extracted automatically and used to link the existing MQTT entities.
+1. Go to **Settings → Devices & services → Add integration** and search for **Sonoff SWV-ZFE**.
+2. In the **Sonoff SWV-ZFE device** field select the SWV-ZFE as registered by Zigbee2MQTT / MQTT. The IEEE address is extracted automatically and used to link the existing MQTT entities.
 3. Confirm. Repeat for each valve. A device can be configured only once; if it does not appear or is refused, check that it is a Zigbee2MQTT device known to the MQTT integration.
 
 The device must already be known to Zigbee2MQTT and to the MQTT integration. The IEEE address is read from the device registry once, at configuration time.
