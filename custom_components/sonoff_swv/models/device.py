@@ -119,10 +119,6 @@ class Device:
 
     manual_irrigation_duration: int | None = 1
 
-    manual_irrigation_total_duration: int | None = 1
-
-    manual_interval_duration: int | None = 1
-
     manual_fail_safe: int | None = 10
 
     # Valve state

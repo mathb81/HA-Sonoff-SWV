@@ -330,7 +330,7 @@ sections:
               - entity: select.sonoff_irrigazione_manual_irrigation_mode
                 state: duration
             row:
-              entity: number.sonoff_irrigazione_manual_irrigation_total_duration
+              entity: number.sonoff_irrigazione_manual_irrigation_duration
               name: Durata
           - type: button
             entity: button.sonoff_irrigazione_manual_irrigation_start

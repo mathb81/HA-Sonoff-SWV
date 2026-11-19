@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import (
     AddEntitiesCallback,
 )
@@ -48,22 +49,6 @@ NUMBERS = (
         key="manual_irrigation_duration",
         name="Manual irrigation duration",
         native_min_value=1,
-        native_max_value=719,
-        native_step=1,
-        native_unit_of_measurement="min",
-    ),
-    SonoffSWVNumberDescription(
-        key="manual_irrigation_total_duration",
-        name="Manual irrigation total duration",
-        native_min_value=1,
-        native_max_value=719,
-        native_step=1,
-        native_unit_of_measurement="min",
-    ),
-    SonoffSWVNumberDescription(
-        key="manual_interval_duration",
-        name="Manual interval duration",
-        native_min_value=0,
         native_max_value=719,
         native_step=1,
         native_unit_of_measurement="min",
@@ -199,6 +184,8 @@ async def async_setup_entry(
 
     coordinator: SonoffSWVCoordinator = hass.data[DOMAIN][entry.entry_id]
 
+    _async_remove_obsolete_entities(hass, coordinator)
+
     async_add_entities_after_start(
         hass,
         async_add_entities,
@@ -207,6 +194,28 @@ async def async_setup_entry(
         _create_number,
         "number",
     )
+
+# Impostazioni manuali che Zigbee2MQTT non legge (la pausa è fissa a 10
+# minuti, la durata è irrigation_duration): non più create, e le entità
+# rimaste nel registro vengono rimosse.
+OBSOLETE_KEYS = (
+    "manual_irrigation_total_duration",
+    "manual_interval_duration",
+)
+
+
+def _async_remove_obsolete_entities(hass, coordinator) -> None:
+    registry = er.async_get(hass)
+
+    for key in OBSOLETE_KEYS:
+        entity_id = registry.async_get_entity_id(
+            "number",
+            DOMAIN,
+            f"{coordinator.device.ieee}_{key}",
+        )
+        if entity_id:
+            registry.async_remove(entity_id)
+
 
 WATER_FLOW_UNIT_MAP = {
     "liter": "L",
