@@ -366,9 +366,9 @@ class SonoffSWVCoordinator(
             self.data,
         )
 
-        self.hass.async_create_task(
-            self.async_save(),
-        )
+        # Un messaggio arriva ogni pochi secondi durante l'irrigazione:
+        # le scritture vengono raggruppate (e fatte comunque all'arresto).
+        self.storage.delay_save(lambda: self.data)
 
     def _update_device_from_payload(
         self,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -19,6 +20,9 @@ _LOGGER = logging.getLogger(__name__)
 # legacy shared file, so that two valves set up at the same time cannot
 # both adopt it.
 _MIGRATION_LOCK = f"{DOMAIN}_storage_migration_lock"
+
+# Seconds to group the writes of frequent updates (MQTT messages).
+SAVE_DELAY = 10
 
 
 def storage_key(entry_id: str) -> str:
@@ -96,6 +100,22 @@ class SonoffStorage:
 
         await self._store.async_save(
             data
+        )
+
+    def delay_save(
+        self,
+        data_func: Callable[[], dict[str, Any]],
+        delay: float = SAVE_DELAY,
+    ) -> None:
+        """Save later, grouping the writes of frequent updates.
+
+        Home Assistant writes the pending data when it stops, so nothing is
+        lost on a normal restart.
+        """
+
+        self._store.async_delay_save(
+            data_func,
+            delay,
         )
 
     async def _async_migrate_legacy(
