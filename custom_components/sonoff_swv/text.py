@@ -44,8 +44,6 @@ class SonoffSWVNotifyText(
 
         self.entity_description = description
 
-        self._attr_unique_id = f"{coordinator.device_name}_{description.key}"
-
     @property
     def available(self) -> bool:
         return super().available and bool(

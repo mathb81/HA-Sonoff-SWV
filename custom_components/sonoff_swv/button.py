@@ -16,7 +16,6 @@ from homeassistant.helpers.entity_platform import (
 from .const import DOMAIN
 from .coordinator import SonoffSWVCoordinator
 from .entity import SonoffSWVEntity
-from .entity_resolver import find_mqtt_entity
 from .entity_setup import async_add_entities_after_start
 from .irrigation_plans import CYCLE_FIELDS, FORM_FIELD_MAP, valid_cycle_minutes
 from .coordinator import HISTORY_PERIOD_MQTT_TYPE
@@ -122,8 +121,6 @@ class SonoffSWVButton(
         )
 
         self.entity_description = description
-
-        self._attr_unique_id = f"{coordinator.device_name}_" f"{description.key}"
 
     async def async_press(
         self,

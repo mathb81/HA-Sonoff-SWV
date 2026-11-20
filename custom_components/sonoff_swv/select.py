@@ -16,12 +16,10 @@ from homeassistant.helpers import entity_registry as er
 from .const import DOMAIN
 from .coordinator import (
     DEFAULT_HISTORY_PERIOD,
-    HISTORY_PERIODS,
     SonoffSWVCoordinator,
 )
 from .coordinator import NOTIFY_CHANNEL_PLATFORM
 from .entity import SonoffSWVEntity
-from .entity_resolver import find_mqtt_entity
 from .entity_setup import async_add_entities_after_start
 
 
@@ -135,8 +133,6 @@ class SonoffSWVSelect(
         )
 
         self.entity_description = description
-
-        self._attr_unique_id = f"{coordinator.device_name}_" f"{description.key}"
 
         self._attr_options = list(description.options)
 

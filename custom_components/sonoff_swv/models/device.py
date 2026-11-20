@@ -253,126 +253,10 @@ class Device:
 
             self.child_lock = payload["child_lock"]
 
-        # Il gruppo irrigation_plan_settings nei payload è solo l'eco, in cache
-        # di Z2M, dell'ultimo piano scritto: applicarlo sovrascriverebbe
+        # irrigation_plan_settings non viene letto: nei payload è solo l'eco,
+        # in cache di Z2M, dell'ultimo piano scritto, e sovrascriverebbe
         # selettore e bozza del form a ogni messaggio del device.
         # I piani del device arrivano dal report (vedi coordinator).
-        plan = {}
-
-        if plan:
-
-            self.irrigation_plan_settings = plan
-
-            self.irrigation_plan_index = plan.get(
-                "plan_index",
-                self.irrigation_plan_index,
-            )
-
-            self.irrigation_plan_create_datetime = plan.get(
-                "create_datetime",
-                self.irrigation_plan_create_datetime,
-            )
-
-            self.irrigation_plan_enabled = plan.get(
-                "enable_state",
-                self.irrigation_plan_enabled,
-            )
-
-            self.irrigation_plan_amount = plan.get(
-                "irrigation_amount",
-                self.irrigation_plan_amount,
-            )
-
-            self.irrigation_plan_amount_unit = plan.get(
-                "irrigation_amount_unit",
-                self.irrigation_plan_amount_unit,
-            )
-
-            self.irrigation_plan_mode = plan.get(
-                "irrigation_mode",
-                self.irrigation_plan_mode,
-            )
-
-            self.irrigation_plan_loop_type = plan.get(
-                "loop_type_mode",
-                self.irrigation_plan_loop_type,
-            )
-
-            self.irrigation_plan_duration = plan.get(
-                "irrigation_duration",
-                self.irrigation_plan_duration,
-            )
-
-            self.irrigation_plan_total_duration = plan.get(
-                "irrigation_total_duration",
-                self.irrigation_plan_total_duration,
-            )
-
-            self.irrigation_plan_interval_duration = plan.get(
-                "interval_duration",
-                self.irrigation_plan_interval_duration,
-            )
-
-            self.irrigation_plan_interval_days = plan.get(
-                "loop_type_interval_days",
-                self.irrigation_plan_interval_days,
-            )
-
-            self.irrigation_plan_fail_safe = plan.get(
-                "fail_safe",
-                self.irrigation_plan_fail_safe,
-            )
-
-            self.irrigation_plan_start_time = plan.get(
-                "start_time",
-                self.irrigation_plan_start_time,
-            )
-
-            self.irrigation_plan_enable_date = plan.get(
-                "enable_date",
-                self.irrigation_plan_enable_date,
-            )
-
-            week_days = plan.get(
-                "loop_type_week_days",
-                {},
-            )
-
-            self.irrigation_plan_monday = week_days.get(
-                "monday",
-                self.irrigation_plan_monday,
-            )
-
-            self.irrigation_plan_tuesday = week_days.get(
-                "tuesday",
-                self.irrigation_plan_tuesday,
-            )
-
-            self.irrigation_plan_wednesday = week_days.get(
-                "wednesday",
-                self.irrigation_plan_wednesday,
-            )
-
-            self.irrigation_plan_thursday = week_days.get(
-                "thursday",
-                self.irrigation_plan_thursday,
-            )
-
-            self.irrigation_plan_friday = week_days.get(
-                "friday",
-                self.irrigation_plan_friday,
-            )
-
-            self.irrigation_plan_saturday = week_days.get(
-                "saturday",
-                self.irrigation_plan_saturday,
-            )
-
-            self.irrigation_plan_sunday = week_days.get(
-                "sunday",
-                self.irrigation_plan_sunday,
-            )
-
         self.irrigation_plan_report = payload.get(
             "irrigation_plan_report",
             self.irrigation_plan_report,
@@ -383,45 +267,8 @@ class Device:
             self.seasonal_watering_adjustment,
         )
 
-        # Come per i piani: nei payload il gruppo è solo l'eco in cache
-        # dell'ultima scrittura, non una lettura del device. Applicarlo
-        # sovrascriverebbe la bozza del form a ogni messaggio.
-        manual = {}
-
-        if manual:
-
-            self.manual_default_settings = manual
-
-            self.manual_irrigation_amount = manual.get(
-                "irrigation_amount",
-                self.manual_irrigation_amount,
-            )
-
-            self.manual_irrigation_mode = manual.get(
-                "irrigation_mode",
-                self.manual_irrigation_mode,
-            )
-
-            self.manual_irrigation_duration = manual.get(
-                "irrigation_duration",
-                self.manual_irrigation_duration,
-            )
-
-            self.manual_irrigation_total_duration = manual.get(
-                "irrigation_total_duration",
-                self.manual_irrigation_total_duration,
-            )
-
-            self.manual_interval_duration = manual.get(
-                "interval_duration",
-                self.manual_interval_duration,
-            )
-
-            self.manual_fail_safe = manual.get(
-                "fail_safe",
-                self.manual_fail_safe,
-            )
-
+        # Per lo stesso motivo manual_default_settings non viene letto: è
+        # l'eco dell'ultima scrittura, non una lettura del device.
         alarm = payload.get(
             "valve_alarm_settings",
             {},
