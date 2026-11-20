@@ -169,6 +169,10 @@ MAPPINGS = (
     #
     # Manual settings
     #
+    # Zigbee2MQTT reads only mode, duration, amount, unit and fail-safe for
+    # manual watering (the pause is fixed at 10 minutes): no total duration
+    # and no interval here, they would be published and ignored.
+    #
     DeviceMapping(
         "manual_irrigation_amount",
         "irrigation_amount",
@@ -182,16 +186,6 @@ MAPPINGS = (
     DeviceMapping(
         "manual_irrigation_duration",
         "irrigation_duration",
-        "manual_default_settings",
-    ),
-    DeviceMapping(
-        "manual_irrigation_total_duration",
-        "irrigation_total_duration",
-        "manual_default_settings",
-    ),
-    DeviceMapping(
-        "manual_interval_duration",
-        "interval_duration",
         "manual_default_settings",
     ),
     DeviceMapping(

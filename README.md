@@ -88,7 +88,7 @@ Defaults for a new plan: disabled, every 1 day, start at 06:00, quantity mode, 1
 
 | Mode | Where | Meaning |
 |---|---|---|
-| `duration` | plans and manual | the irrigation lasts the **total duration** |
+| `duration` | plans and manual | the irrigation lasts the **total duration** (plans) or the **manual irrigation duration** (manual) |
 | `capacity` | plans and manual | the irrigation stops when the **quantity** is delivered, or when the **fail-safe** time expires |
 | `duration_with_interval` | plans only | cycles with pauses: the **total duration** is the whole window, pauses included, **cycle duration** is each opening and **interval** is the pause between cycles |
 
