@@ -60,6 +60,8 @@ Copy the folder `custom_components/sonoff_swv` of this repository into the `cust
 
 The device must already be known to Zigbee2MQTT and to the MQTT integration. The IEEE address is read from the device registry once, at configuration time.
 
+The valve is followed by its IEEE address: if you rename it in Zigbee2MQTT, the integration picks up the new name and reloads the valve. If the base topic of Zigbee2MQTT is not `zigbee2mqtt`, set it in the options of each valve (**Configure** on the integration).
+
 ## Entities
 
 Entity ids start with the name of the device in Zigbee2MQTT. In the examples below the device is called `Sonoff_Irrigazione`, so the entities are `…sonoff_irrigazione_…`.

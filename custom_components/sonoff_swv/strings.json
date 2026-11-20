@@ -16,5 +16,19 @@
         "abort": {
             "already_configured": "This Sonoff SWV-ZFE device is already configured."
         }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Zigbee2MQTT",
+                "description": "Base topic of Zigbee2MQTT (\"base_topic\" in its configuration). Change it only if it is not \"zigbee2mqtt\".",
+                "data": {
+                    "base_topic": "Base topic"
+                }
+            }
+        },
+        "error": {
+            "invalid_base_topic": "Enter a topic without \"#\" or \"+\", for example zigbee2mqtt."
+        }
     }
 }

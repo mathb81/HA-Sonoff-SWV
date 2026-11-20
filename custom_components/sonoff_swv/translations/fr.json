@@ -16,5 +16,19 @@
     "abort": {
       "already_configured": "Cette vanne Sonoff SWV-ZFE est déjà configurée."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Zigbee2MQTT",
+        "description": "Topic de base de Zigbee2MQTT (« base_topic » dans sa configuration). Ne le changez que s'il n'est pas « zigbee2mqtt ».",
+        "data": {
+          "base_topic": "Topic de base"
+        }
+      }
+    },
+    "error": {
+      "invalid_base_topic": "Saisissez un topic sans « # » ni « + », par exemple zigbee2mqtt."
+    }
   }
 }

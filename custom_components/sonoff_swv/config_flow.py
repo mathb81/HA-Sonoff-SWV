@@ -5,10 +5,11 @@ import logging
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.core import callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import selector
 
-from .const import DOMAIN
+from .const import CONF_BASE_TOPIC, DEFAULT_BASE_TOPIC, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -107,5 +108,41 @@ class SonoffSWVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=schema,
+            errors=errors,
+        )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> SonoffSWVOptionsFlow:
+        return SonoffSWVOptionsFlow()
+
+
+class SonoffSWVOptionsFlow(config_entries.OptionsFlowWithReload):
+    """Options of a valve: the Zigbee2MQTT base topic (reloads the valve)."""
+
+    async def async_step_init(
+        self,
+        user_input: dict | None = None,
+    ) -> config_entries.ConfigFlowResult:
+
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            topic = str(user_input.get(CONF_BASE_TOPIC, "")).strip().strip("/")
+
+            if not topic or "#" in topic or "+" in topic:
+                errors[CONF_BASE_TOPIC] = "invalid_base_topic"
+            else:
+                return self.async_create_entry(data={CONF_BASE_TOPIC: topic})
+
+        current = self.config_entry.options.get(CONF_BASE_TOPIC, DEFAULT_BASE_TOPIC)
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {vol.Required(CONF_BASE_TOPIC, default=current): str}
+            ),
             errors=errors,
         )

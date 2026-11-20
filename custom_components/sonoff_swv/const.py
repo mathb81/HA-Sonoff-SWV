@@ -1,5 +1,9 @@
 DOMAIN = "sonoff_swv"
 
+# Base topic of Zigbee2MQTT ("base_topic" in its configuration).
+CONF_BASE_TOPIC = "base_topic"
+DEFAULT_BASE_TOPIC = "zigbee2mqtt"
+
 MQTT_TOPIC_STATE = "zigbee2mqtt/{device}"
 MQTT_TOPIC_SET = "zigbee2mqtt/{device}/set"
 
