@@ -1065,7 +1065,9 @@ class SonoffSWVCoordinator(
             self._cancel_warning()
             return
 
-        now = datetime.now().astimezone()
+        # Fuso di Home Assistant, non lo scostamento di oggi: il preavviso
+        # resta giusto anche dopo un cambio dell'ora legale.
+        now = dt_util.now()
         run = next_event(
             self.data.get("irrigation_plans", {}), now, lang=self.language
         )

@@ -38,7 +38,12 @@ def _parse_date(value):
 
 
 def next_run(plan: dict, now: datetime) -> datetime | None:
-    """Prossimo avvio del piano dopo `now`, oppure None se il piano non è attivo."""
+    """Prossimo avvio del piano dopo `now`, oppure None se il piano non è attivo.
+
+    `now` deve avere il fuso orario di Home Assistant (dt_util.now()), non
+    uno scostamento fisso: gli avvii futuri prendono lo scostamento del loro
+    giorno, anche dopo un cambio dell'ora legale.
+    """
     if not plan or not plan.get("enable_state"):
         return None
 
@@ -76,6 +81,18 @@ def next_run(plan: dict, now: datetime) -> datetime | None:
         for i in range(8):
             day = base + timedelta(days=i)
             if days.get(WEEKDAY_KEYS[day.weekday()]):
+                candidate = datetime.combine(day, start, tzinfo=tz)
+                if candidate > now:
+                    return candidate
+        return None
+
+    if mode in ("odd_days", "even_days"):
+        # Giorni del mese dispari (1, 3, ..., 31) o pari (2, 4, ..., 30).
+        parity = 1 if mode == "odd_days" else 0
+        base = max(now.date(), first_day)
+        for i in range(4):
+            day = base + timedelta(days=i)
+            if day.day % 2 == parity:
                 candidate = datetime.combine(day, start, tzinfo=tz)
                 if candidate > now:
                     return candidate
@@ -172,6 +189,8 @@ def format_plan_line(plan: dict | None, now: datetime, lang: str = "en") -> str:
         cadence = ",".join(
             names[i] for i, k in enumerate(WEEKDAY_KEYS) if days.get(k)
         ) or translate(lang, "plan_no_days")
+    elif plan.get("loop_type_mode") in ("odd_days", "even_days"):
+        cadence = translate(lang, f"plan_{plan['loop_type_mode']}")
     else:
         cadence = translate(
             lang, "plan_every_days", n=plan.get("loop_type_interval_days") or 1
